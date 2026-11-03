@@ -1,64 +1,54 @@
 # legahin
 
-A CLI that finds the storage you are actually wasting, then gets an LLM to suggest what is
-safe to delete. It reports; it does not delete anything on its own.
+CLI untuk memeriksa penyimpanan: memindai folder, menghitung ukuran, menemukan berkas duplikat, lalu
+meminta model AI menyusun rencana pembersihan yang bisa kamu tinjau sebelum dieksekusi.
 
-## Why
-
-`du -sh` tells you a folder is big. It does not tell you which of those bytes are duplicate
-copies of the same video, which are untouched since 2024, and which are build artefacts you can
-regenerate in ten seconds. legahin answers that.
-
-## What it does
-
-- Walks a directory tree and skips the noise: `.git`, `node_modules`, `__pycache__`, virtual
-  environments, `dist`, `build`, `.cache`, and system folders.
-- Flags **large files** (over 50 MB by default).
-- Flags **stale files** — untouched for more than 180 days.
-- Finds **duplicates** by hashing file contents (MD5, streamed in 64 KB chunks) rather than by
-  name or size, so renamed copies still show up.
-- Reports free-space pressure when the volume drops below 20 % free.
-- Sends the findings to an LLM through **OpenRouter** and asks it to rank what is worth deleting
-  and why.
-
-## Requirements
-
-- Python 3.9+
-- `openai` (used as the OpenRouter client)
-- An OpenRouter API key
-
-## Setup
+## Memasang
 
 ```bash
 pip install openai
 export OPENROUTER_API_KEY='sk-or-...'
 ```
 
-## Run
+Bisa juga disimpan di `.env` dalam folder yang sama:
 
-```bash
-python cleaner.py <path>
+```
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
-Optional environment variables:
+## Menjalankan
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `OPENROUTER_API_KEY` | — | Required. OpenRouter key |
-| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | Any OpenRouter model id |
+```bash
+python cleaner.py                    # pindai folder saat ini
+python cleaner.py D:/Downloads       # pindai folder tertentu
+python cleaner.py --no-ai            # laporan saja, tanpa memanggil model
+python cleaner.py --large 500 --old 180
+```
 
-Thresholds live at the top of `cleaner.py` as constants (`LARGE_FILE_MB`, `OLD_FILE_DAYS`,
-`MIN_FREE_PERCENT`).
+| Opsi | Arti |
+| :--- | :--- |
+| `path` | Folder yang dipindai (default `.`) |
+| `--large <MB>` | Ambang berkas besar (default dari `LARGE_FILE_MB`) |
+| `--old <hari>` | Ambang berkas lama berdasarkan tanggal akses |
+| `--max <n>` | Batas jumlah berkas yang dipindai (default 10.000) |
+| `--no-ai` | Lewati analisis AI |
 
-## Safety
+## Yang dikirim ke model
 
-The tool is read-only. It computes hashes and prints a report; deletion is your decision. Even
-duplicate detection only identifies candidates — verify before removing anything, especially if
-the files are part of a backup set.
+Hanya ringkasan metadata: total ukuran, sisa disk, daftar duplikat, berkas besar, berkas lama, tipe
+berkas terbesar, dan 100 berkas terbesar (nama + path + ukuran). **Isi berkas tidak pernah dikirim.**
+Nama dan path sengaja disertakan agar sarannya konkret, bukan saran umum.
 
-Hashing every file can take a while on a large drive, and MD5 is used purely for speed of
-comparison, not for integrity guarantees.
+Duplikat dideteksi lewat hash isi, bukan nama, sehingga berkas yang diganti nama tetap tertangkap.
 
-## License
+## Eksekusi
 
-MIT
+Penghapusan tidak berjalan otomatis. Setelah rencana ditampilkan, kamu harus mengetik `yes`. Tanpa
+itu, tidak ada berkas yang disentuh.
+
+## Catatan
+
+- Path berkas ikut terkirim ke penyedia model; jangan jalankan pada folder yang nama berkasnya sensitif.
+- Hashing berkas besar memakan waktu. Pindai per subfolder daripada seluruh drive sekaligus.
+- Coba dulu di folder percobaan.
