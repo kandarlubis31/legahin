@@ -52,3 +52,9 @@ itu, tidak ada berkas yang disentuh.
 - Path berkas ikut terkirim ke penyedia model; jangan jalankan pada folder yang nama berkasnya sensitif.
 - Hashing berkas besar memakan waktu. Pindai per subfolder daripada seluruh drive sekaligus.
 - Coba dulu di folder percobaan.
+
+---
+
+## English
+
+**legahin** is a storage-check CLI: it scans folders, adds up sizes, finds duplicate files, and then asks an AI model for a cleanup plan you can review before anything is executed.
